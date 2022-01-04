@@ -1,1 +1,1265 @@
 
+// import $ from "jquery";  
+import { gsap, TweenMax, TimelineMax } from "gsap";
+import Swiper from 'swiper/bundle';
+import lottie from "lottie-web";
+import moment from 'moment';
+import localization from 'moment/locale/fr';
+moment.updateLocale('fr', localization);
+
+import 'daterangepicker/daterangepicker.js';
+import Chart from 'chart.js';
+Chart.defaults.global.defaultFontFamily = 'Roboto';
+
+import IG from './ImagesGallery';
+
+import Utils from './vendors/Utils';
+import WindowUtils from './vendors/WindowUtils';
+import { data } from "jquery";
+// import GridDebug from './vendors/GridDebug';
+// new GridDebug(12,0);
+
+const WU = new WindowUtils();
+
+if (WU.isTouch()) {
+    $('html').addClass('isTouch');
+}
+
+gsap.defaults({
+    ease: "expo.inOut"
+});
+
+
+// ----------------------------------------------
+// Load images & render its ---------------------
+// ----------------------------------------------
+const loadImages = () => {
+    $('.imageRender:not(.imageRender--loaded)').each(function(){
+        let img = $(this);
+        let url = img.attr('data-url');
+        let cover = img.find('.imageRender_cover');
+        
+        Utils.loadImage(url).then(() => {
+            cover.css('background-image', 'url(' + url + ')');
+            img.addClass('imageRender--loaded');
+        });
+    });
+};
+
+(function() {
+
+    if ($('[data-ig]').length > 0) {
+        new IG('[data-ig]');
+    }
+
+
+    // ----------------------------------------------
+    // Center Main Nav ------------------------------
+    // ----------------------------------------------
+    let activeLink = $('.mainNav').find('.active');
+    if (activeLink.length > 0){
+        let bounding = activeLink.get(0).getBoundingClientRect();
+        $('.mainNav').get(0).scrollLeft = bounding.left - 20;
+    }
+
+
+    // ----------------------------------------------
+    // Collapse menu --------------------------------
+    // ----------------------------------------------
+    let prevScrollpos = WU.w.st;
+    const toggleTopbar = () => {
+        if (prevScrollpos < WU.w.st && WU.w.st > WU.w.h/5) {
+            $('html').attr('data-hide-topbar', '');
+        } else {
+            $('html').removeAttr('data-hide-topbar');
+        }
+        prevScrollpos = WU.w.st;
+    };
+
+
+    // ----------------------------------------------
+    // Preload images -------------------------------
+    // ----------------------------------------------
+    loadImages();
+
+
+    // ----------------------------------------------
+    // Property list --------------------------------
+    // ----------------------------------------------
+    if ($('.propertyCard_carousel').length) {
+        $('.propertyCard_carousel').each(function(){
+            let carousel = $(this);
+            let guid = Utils.guid();
+            carousel.attr('data-carousel', guid);
+            new Swiper('.propertyCard_carousel[data-carousel="' + guid + '"] .swiper-container', {	
+                slidesPerView: 1,
+                spaceBetween: 0,
+                navigation: {
+                    prevEl: '.propertyCard_carousel[data-carousel="' + guid + '"] .customCarousel_nav--prev',
+                    nextEl: '.propertyCard_carousel[data-carousel="' + guid + '"] .customCarousel_nav--next',
+                }
+            });
+        });
+    }
+
+    
+    // ----------------------------------------------
+    // Property details carousels -------------------
+    // ----------------------------------------------
+    if ($('.property_pictures .swiper-container').length) {
+        new Swiper('.property_pictures .swiper-container', {	
+            slidesPerView: 4,
+            spaceBetween: 16,
+            navigation: {
+                prevEl: '.property_pictures .customCarousel_nav--prev',
+                nextEl: '.property_pictures .customCarousel_nav--next',
+            },
+            breakpoints: {
+                0: { slidesPerView: 1 },
+                480: { slidesPerView: 2 },
+                768: { slidesPerView: 3 },
+                990: { slidesPerView: 4 }
+            }
+        });
+    }
+
+    if ($('.property_actions .swiper-container').length) {
+        new Swiper('.property_actions .swiper-container', {	
+            slidesPerView: 3,
+            spaceBetween: 16,
+            navigation: {
+                prevEl: '.property_actions .customCarousel_nav--prev',
+                nextEl: '.property_actions .customCarousel_nav--next',
+            },
+            breakpoints: {
+                0: { slidesPerView: 1 },
+                768: { slidesPerView: 2 },
+                990: { slidesPerView: 3 }
+            }
+        });
+    }
+
+    if ($('.property_calendar .swiper-container').length) {
+        new Swiper('.property_calendar .swiper-container', {	
+            slidesPerView: 6,
+            spaceBetween: 16,
+            navigation: {
+                prevEl: '.property_calendar_nav.customCarousel_nav--prev',
+                nextEl: '.property_calendar_nav.customCarousel_nav--next',
+            },
+            breakpoints: {
+                0: { slidesPerView: 2 },
+                440: { slidesPerView: 3 },
+                768: { slidesPerView: 4 },
+                1100: { slidesPerView: 6 }
+            }
+        });
+    }
+
+    // ----------------------------------------------
+    // Collapse component ---------------------------
+    // ----------------------------------------------
+    const collapse = (selector, parentSelector, contectSelector, openedClass) => {
+        $(selector).on('click', function (e) {
+            e.preventDefault();
+            let parent = $(this).closest(parentSelector);
+            let content = parent.find(contectSelector);
+    
+            if (parent.attr('data-animating') == 'true') return;
+    
+            if (parent.hasClass(openedClass)) {
+                TweenMax.to(content, {
+                    height: 0,
+                    duration: 0.4,
+                    ease: "power4.out",
+                    clearProps: 'all',
+                    onStart: () => { parent.attr('data-animating', 'true'); },
+                    onComplete: () => { parent.removeAttr('data-animating'); }
+                });
+                parent.removeClass(openedClass);
+            } else {
+                gsap.set(content, { height: 'auto' });
+                TweenMax.from(content, {
+                    height: 0,
+                    duration: 0.4,
+                    ease: "power4.out",
+                    onStart: () => { parent.attr('data-animating', 'true'); },
+                    onComplete: () => { parent.removeAttr('data-animating'); content.height('auto'); }
+                });
+                parent.addClass(openedClass);
+            }
+        });
+    };
+
+    collapse('.collapse_header', '.collapse', '.collapse_content', 'collapse--opened');
+    collapse('.property_section--collapse .property_section_header_collapseMask', '.property_section--collapse', '.property_section_content', 'property_section--opened');
+    collapse('.actionsMonth_collapseMask', '.actionsMonth', '.actionsMonth_content', 'actionsMonth--opened');
+    collapse('.rental_section--collapse .rental_section_header_collapseMask', '.rental_section--collapse', '.rental_section_content', 'rental_section--opened');
+    collapse('.propertyStats_section--collapse .propertyStats_section_header_collapseMask', '.propertyStats_section--collapse', '.propertyStats_section_content', 'propertyStats_section--opened');
+    collapse('.panel_section--collapse .panel_section_header_collapseMask', '.panel_section--collapse', '.panel_section_content', 'panel_section--opened');
+
+    
+    // ----------------------------------------------
+    // Popins ---------------------------------------
+    // ----------------------------------------------
+    const popinsBackground = $('.popinBackground');
+    let popinsBackgroundOpened = false;
+    let popins = [];
+
+    const hidePopin = (popinElt) => {
+        let TL = new TimelineMax();
+        TL.to(popinElt.find('.popin_box'), { duration: 0.3, opacity: 0, y: 100, ease: "expo.Out" });
+        TL.set(popinElt, { autoAlpha: 0 });
+    };
+
+    const showPopin = (popinElt) => {
+        let TL = new TimelineMax();
+        TL.set(popinElt, { autoAlpha: 1 });
+        if (!popinsBackgroundOpened) {
+            TL.to(popinsBackground, { duration: 0.2, autoAlpha: 1, ease: "none" }, 0);
+        }
+        TL.to(popinElt.find('.popin_box'), { duration: 0.5, opacity: 1, y: 0, ease: "expo.Out" }, popinsBackgroundOpened ? 0 : 0.1);
+    };
+
+    const openPopin = (popinElt) => {
+        popins.push(popinElt);
+        popinElt.get(0).scrollTop = 0;
+        showPopin(popinElt)
+
+        WU.clearScrollLocks();
+        WU.disableScroll(popinElt.get(0));
+    };
+
+    const closePopin = (popinElt) => {
+        hidePopin(popinElt);
+        popins.pop();
+        
+        if (popins.length > 0) {
+            showPopin(popins[popins.length - 1]);
+        } else {
+            hideBackground();
+
+            if ($('.panel.panel--visible').length) {
+                WU.clearScrollLocks();
+                WU.disableScroll($('.panel.panel--visible .panel_scroller').get(0));
+            } else {
+                WU.clearScrollLocks();
+            }
+        }
+
+    };
+
+    const hideBackground = () => {
+        gsap.to(popinsBackground, { duration: 0.2, autoAlpha: 0, ease: "none" });
+    };
+
+    const closePopins = () => {
+        popins.forEach(function(popin){
+            hidePopin(popin);
+        });
+        popins = [];
+        hideBackground();
+            
+        if ($('.panel.panel--visible').length) {
+            WU.clearScrollLocks();
+            WU.disableScroll($('.panel.panel--visible .panel_scroller').get(0));
+        } else {
+            WU.clearScrollLocks();
+        }
+    };
+
+    const initPopins = () => {
+        $('[data-popin]').on('click', function (e) {
+            e.preventDefault();
+            const popinElt = $($(this).attr('data-popin'));
+            if (popinElt.length > 0)  {
+                if (popins.length > 0) {
+                    hidePopin(popins[popins.length - 1]);
+                }
+                openPopin(popinElt);
+            }
+        });
+
+        // Close one popin
+        $('.popin_close, [data-popin-close="true"]').on('click', function (e) {
+            e.preventDefault();
+            closePopin(popins[popins.length - 1]);
+        });
+
+        // Close all popins
+        popinsBackground.on('click', function(){
+            hideBackground();
+            closePopins();
+        });
+        $('[data-popin-closeall="true"], .popin_bg').on('click', function(){
+            hideBackground();
+            closePopins();
+        });
+    };
+
+    initPopins();
+
+
+    // ----------------------------------------------
+    // Panels ---------------------------------------
+    // ----------------------------------------------
+    const openPanel = (panelElt) => {
+        panelElt.addClass('panel--visible');
+        panelElt.find('.panel_scroller').get(0).scrollTop = 0;
+        WU.disableScroll(panelElt.find('.panel_scroller').get(0));
+        if (WU.isXS()) {
+            TweenMax.set(panelElt.find('.panel_wrap'), { yPercent: 101 });
+            TweenMax.to(panelElt, { duration: 0.2, autoAlpha: 1, ease: "none" });
+            TweenMax.to(panelElt.find('.panel_wrap'), { duration: 0.8, yPercent: 0, delay: 0.1, ease: "expo.Out" });
+        } else {
+            TweenMax.set(panelElt.find('.panel_wrap'), { xPercent: 101 });
+            TweenMax.to(panelElt, { duration: 0.2, autoAlpha: 1, ease: "none" });
+            TweenMax.to(panelElt.find('.panel_wrap'), { duration: 0.8, xPercent: 0, delay: 0.1, ease: "expo.Out" });
+        }
+    };
+
+    const closePanel = (panelElt) => {
+        panelElt.removeClass('panel--visible');
+        WU.enableScroll(panelElt.find('.panel_scroller').get(0));
+        if (WU.isXS()) {
+            TweenMax.to(panelElt.find('.panel_wrap'), { duration: 0.3, yPercent: 101, ease: "expo.Out" });
+            TweenMax.to(panelElt, { duration: 0.1, autoAlpha: 0, delay: 0.2, ease: "none" });
+        } else {
+            TweenMax.to(panelElt.find('.panel_wrap'), { duration: 0.3, xPercent: 101, ease: "expo.Out" });
+            TweenMax.to(panelElt, { duration: 0.1, autoAlpha: 0, delay: 0.2, ease: "none" });
+        }
+    };
+
+    const initPanels = () => {
+        $('[data-panel!=panel-rental-rent]').on('click', function (e) {
+            e.preventDefault();
+            const panelElt = $($(this).attr('data-panel'));
+            if (panelElt.length > 0)  {
+                openPanel(panelElt);
+            }
+        });
+
+        $('.panel_close, .panel_background').on('click', function (e) {
+            e.preventDefault();
+            closePanel($(this).closest('.panel'));
+        });
+    };
+
+    initPanels();
+	
+	
+	
+    const initPanelsRents = function initPanelsRents() {
+    $('body').on('click', '#rent [data-panel]', function (e) {
+      const _this = this;
+
+      e.preventDefault();
+      const Params = new URLSearchParams();
+      const Url = new URL(window.location.href); // On lance la requête ajax
+      // console.log(e.target.getAttribute('href'))
+
+      $("#loader").addClass("is-active");
+      fetch(e.target.getAttribute('href') + "&ajax=1", {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          'Content-Type': 'application/json'
+        }
+      }).then(function (response) {
+        return response.json();
+      }).then(function (data) {
+        // On va chercher la zone de contenu
+        const content = document.querySelector(".panel");
+        const list_popins = document.querySelector(".list_popins");
+        content.innerHTML = data.content;
+        list_popins.innerHTML = data.list_popins;
+      }).then(function (cc) {
+        if ($('.rentalCarousel').length) {
+          $('.rentalCarousel').each(function () {
+            const carousel = $(this);
+
+            const guid = Utils.guid();
+
+            carousel.attr('data-carousel', guid);
+            new Swiper('.rentalCarousel[data-carousel="' + guid + '"] .swiper-container', {
+              slidesPerView: 3,
+              spaceBetween: 16,
+              breakpoints: {
+                0: {
+                  slidesPerView: 1
+                },
+                480: {
+                  slidesPerView: 2
+                },
+                // 768: { slidesPerView: 3, allowTouchMove: false, spaceBetween: 20 },
+                1025: {
+                  slidesPerView: 3,
+                  allowTouchMove: false,
+                  spaceBetween: 20
+                }
+              },
+              navigation: {
+                prevEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--prev',
+                nextEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--next'
+              }
+            });
+            carousel.find('.rentalItem').on('click', function () {
+              carousel.find('.rentalItem.active').removeClass('active');
+              $(this).addClass('active');
+              const rentalId = $(this).attr('data-rental');
+              const panel = $(this.closest('.panel'));
+              panel.find('.rental.visible').removeClass('visible');
+              panel.find('.rental[data-rental="' + rentalId + '"]').addClass('visible');
+              panel.find('.panel_scroller').get(0).scrollTop = 0;
+            });
+          });
+        } // ----------------------------------------------
+        // DataTables -----------------------------------
+        // ----------------------------------------------
+
+
+        $('table[data-table]').DataTable({
+          "searching": false,
+          "info": false,
+          "lengthChange": false,
+          "paging": false
+        });
+        $('.tabWrap .tabButton[data-tab]').on('click', function (e) {
+          e.preventDefault();
+          const parent = $(this).closest('.tabWrap');
+          const tabValue = $(this).attr('data-tab');
+          const tab = parent.find('.tabSection[data-tab="' + tabValue + '"]');
+          parent.find('.tabSection').removeClass('visible');
+          parent.find('.tabButton').removeClass('active');
+          tab.addClass('visible');
+          $(this).addClass('active');
+        });
+      }).then(function (aa) {
+        const panelElt = $($(_this).attr('data-panel'));
+
+        if (panelElt.length > 0) {
+          $("#loader").removeClass("is-active");
+          openPanel(panelElt);
+        }
+      })["catch"](function (e) {
+        return alert(e);
+      });
+    });
+    $('body').on('click', '.panel_close, .panel_background', function (e) {
+      e.preventDefault();
+      closePanel($(this).closest('.panel'));
+    });
+  };
+
+    initPanelsRents();
+
+
+    // ----------------------------------------------
+    // Select2 --------------------------------------
+    // ----------------------------------------------
+    $('.customSelect').each(function(){
+        const elt = $(this);
+
+        let options = {}
+        options.minimumResultsForSearch = -1;
+
+        elt.select2(options);
+    });
+
+
+    // ----------------------------------------------
+    // Dropdown menu --------------------------------
+    // ----------------------------------------------
+    const toggleDropdown = (elt) => { 
+        elt.toggleClass('dropdown--visible');
+    };
+    
+    const closeDropdowns = () => {
+        $('.dropdown--visible').removeClass('dropdown--visible');
+    };
+
+    $('[data-dropdown]').on('click', function (e){
+        e.preventDefault();
+        let btn = $(this);
+        let dropdown = (btn.attr('data-dropdown') != '') ? $(btn.attr('data-dropdown')) : btn.siblings('.dropdown');
+        if (dropdown) {
+            toggleDropdown(dropdown);
+        }
+    });
+    
+    if ($('[data-dropdown]').length > 0) {
+        window.onclick = function(event) {
+            if (!event.target.hasAttribute('data-dropdown') ) {
+                closeDropdowns();
+            }
+        };
+    }
+
+
+    // ----------------------------------------------
+    // DataTables -----------------------------------
+    // ----------------------------------------------
+    $('table[data-table]').DataTable({
+        "searching": false,
+        "info": false,
+        "lengthChange": false,
+        "paging": false,
+    });
+
+
+    // ----------------------------------------------
+    // Datepicker -----------------------------------
+    // ----------------------------------------------
+    $('[data-datepicker]').each(function(){
+        let elt = $(this);
+        let drops = elt.attr('data-datepicker-drops') || 'bottom';
+        let opens = elt.attr('data-datepicker-opens') || 'right';
+        elt.daterangepicker({
+            singleDatePicker: true,
+            showDropdowns: true,
+            autoApply: true,
+            drops: drops,
+            opens: opens,
+            locale: {
+                "format": "DD/MM/YYYY",
+                "separator": " - ",
+                "applyLabel": "Valider",
+                "cancelLabel": "Annuler",
+                "fromLabel": "De",
+                "toLabel": "À",
+                "customRangeLabel": "Personnalisée",
+                "weekLabel": "S",
+                "daysOfWeek": [ "Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa" ],
+                "monthNames": [ "Janvier", "Févrirer", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
+                "firstDay": 1
+            },
+        });
+    })
+
+    // ----------------------------------------------
+    // DateRangePicker ------------------------------
+    // ----------------------------------------------
+    $('[data-daterangepicker]').each(function(){
+        let elt = $(this);
+        let drpStart = moment().subtract(29, 'days');
+        let drpEnd = moment();
+
+        let drops = elt.attr('data-daterangepicker-drops') || 'bottom';
+        let opens = elt.attr('data-daterangepicker-opens') || 'center';
+        elt.daterangepicker({
+            startDate: drpStart,
+            endDate: drpEnd,
+            alwaysShowCalendars: true,
+            drops: drops,
+            opens: opens,
+            showCustomRangeLabel: false,
+            locale: {
+                "format": "DD/MM/YYYY",
+                "separator": " - ",
+                "applyLabel": "Valider",
+                "cancelLabel": "Annuler",
+                "fromLabel": "De",
+                "toLabel": "À",
+                "customRangeLabel": "Personnalisée",
+                "weekLabel": "S",
+                "daysOfWeek": [ "Di", "Lu", "Ma", "Me", "Je", "Ve", "Sa" ],
+                "monthNames": [ "Janvier", "Févrirer", "Mars", "Avril", "Mai", "Juin", "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre" ],
+                "firstDay": 1
+            },
+            ranges: {
+            "Aujourd'hui": [moment(), moment()],
+            'Hier': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+            '7 derniers jours': [moment().subtract(6, 'days'), moment()],
+            '30 derniers jours': [moment().subtract(29, 'days'), moment()],
+            'Ce mois-ci': [moment().startOf('month'), moment().endOf('month')],
+            'Mois précédent': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+            }
+        });
+    });
+
+
+    // ----------------------------------------------
+    // SortButton -----------------------------------
+    // ----------------------------------------------
+    $('.formSort').on('click', function(e){
+        e.preventDefault();
+        let stateAttr = $(this).attr('data-state') ? parseInt($(this).attr('data-state')) : 0;
+        let newState = stateAttr === 2 ? 0 : stateAttr + 1;
+        $(this).attr('data-state', newState);
+    });
+    
+
+    // ----------------------------------------------
+    // Lottie ---------------------------------------
+    // ----------------------------------------------
+    $('.lottie').each(function(){
+        const elt = $(this);
+        lottie.loadAnimation({
+            container: elt.get(0), // the dom element that will contain the animation
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'assets/json/lodgis.json' // the path to the animation json
+          });
+    });
+
+
+
+    // ----------------------------------------------
+    // Agent mobile button --------------------------
+    // ----------------------------------------------
+    $('.agentButtonMobile').on('click', () => {
+        $('.agentButtonMobile_mask').toggleClass('agentButtonMobile_mask--visible');
+        $('.agentBloc').toggleClass('agentBloc--visible');
+    });
+
+    $('.agentButtonMobile_mask').on('click', () => {
+        $('.agentButtonMobile_mask').removeClass('agentButtonMobile_mask--visible');
+        $('.agentBloc').removeClass('agentBloc--visible');
+    });
+
+
+    // ----------------------------------------------
+    // Actions year panel toggle --------------------
+    // ----------------------------------------------
+    $('.actions_nav > a[data-year]').on('click', function (e) {
+        e.preventDefault();
+        let year = $(this).attr('data-year');
+        $('.actions_nav a.active').removeClass('active');
+        $(this).addClass('active');
+        $('.actionsYear--visible').removeClass('actionsYear--visible');
+        $('.actionsYear[data-year="' + year + '"]').addClass('actionsYear--visible');
+    });
+
+
+    // ----------------------------------------------
+    // Actions year panel toggle --------------------
+    // ----------------------------------------------
+    if ($('.rentalCarousel').length) {
+        $('.rentalCarousel').each(function(){
+            let carousel = $(this);
+            let guid = Utils.guid();
+            carousel.attr('data-carousel', guid);
+            new Swiper('.rentalCarousel[data-carousel="' + guid + '"] .swiper-container', {	
+                slidesPerView: 3,
+                spaceBetween: 16,
+                breakpoints: {
+                    0: { slidesPerView: 1 },
+                    480: { slidesPerView: 2 },
+                    // 768: { slidesPerView: 3, allowTouchMove: false, spaceBetween: 20 },
+                    1025: { slidesPerView: 3, allowTouchMove: false, spaceBetween: 20 }
+                },
+                navigation: {
+                    prevEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--prev',
+                    nextEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--next',
+                }
+            });
+
+            carousel.find('.rentalItem').on('click', function () {
+                carousel.find('.rentalItem.active').removeClass('active');
+                $(this).addClass('active');
+                let rentalId = $(this).attr('data-rental');
+                let panel = $(this.closest('.panel'))
+                panel.find('.rental.visible').removeClass('visible');
+                panel.find('.rental[data-rental="' + rentalId + '"]').addClass('visible');
+                panel.find('.panel_scroller').get(0).scrollTop = 0;
+            });
+        });
+
+    }
+
+
+    // ----------------------------------------------
+    // Actions year panel toggle --------------------
+    // ----------------------------------------------
+    $('.actions_nav > a[data-year]').on('click', function (e) {
+        e.preventDefault();
+        let year = $(this).attr('data-year');
+        $('.actions_nav a.active').removeClass('active');
+        $(this).addClass('active');
+        $('.actionsYear--visible').removeClass('actionsYear--visible');
+        $('.actionsYear[data-year="' + year + '"]').addClass('actionsYear--visible');
+    });
+
+
+    // ----------------------------------------------
+    // Tab toggle -----------------------------------
+    // ----------------------------------------------
+    $('.tabWrap .tabButton[data-tab]').on('click', function (e) {
+        e.preventDefault();
+        let parent = $(this).closest('.tabWrap');
+        let tabValue = $(this).attr('data-tab');
+        let tab = parent.find('.tabSection[data-tab="' + tabValue + '"]');
+        parent.find('.tabSection').removeClass('visible');
+        parent.find('.tabButton').removeClass('active');
+        tab.addClass('visible');
+        $(this).addClass('active');
+    });
+
+
+    $('.formCheckGrouped--date .formCheck input[type="checkbox"]').on('click', function() {
+        let parent = $(this).closest('.formCheckGrouped');
+        if ($(this).is(':checked')) {
+            parent.find('.formCheckGrouped_date').addClass('visible');
+        } else {
+            parent.find('.formCheckGrouped_date').removeClass('visible');
+        }
+    });
+
+    $('.formCheckGrouped--dateMobile .formCheck--base input[type="checkbox"]').on('click', function() {
+        let parent = $(this).closest('.formCheckGrouped');
+        if ($(this).is(':checked')) {
+            parent.find('.formCheckGrouped_dates').addClass('visible');
+        } else {
+            parent.find('.formCheckGrouped_dates').removeClass('visible');
+        }
+    });
+
+    $('input[name="rentalsMobileDates"]').on('click', function() {
+        let parent = $(this).closest('.formCheckGrouped');
+        if ($(this).val() == 'custom') {
+            parent.find('.customDates').addClass('visible');
+        } else {
+            parent.find('.customDates').removeClass('visible');
+        }
+    });
+
+    var start = moment().subtract(29, 'days');
+    var end = moment();
+
+    function cb(start, end) {
+        $('#reportrange span').html(start.format('MMMM D, YYYY') + ' - ' + end.format('MMMM D, YYYY'));
+    }
+
+    $('#reportrange').daterangepicker({
+        startDate: start,
+        endDate: end,
+        ranges: {
+           'Today': [moment(), moment()],
+           'Yesterday': [moment().subtract(1, 'days'), moment().subtract(1, 'days')],
+           'Last 7 Days': [moment().subtract(6, 'days'), moment()],
+           'Last 30 Days': [moment().subtract(29, 'days'), moment()],
+           'This Month': [moment().startOf('month'), moment().endOf('month')],
+           'Last Month': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')]
+        }
+    }, cb);
+
+    cb(start, end);
+    
+
+    // ----------------------------------------------
+    // Stats ----------------------------------------
+    // ----------------------------------------------
+
+    // List charts
+    $('.propertyRow_chart').each(function () {
+        let ctx = this.getContext("2d");
+        let values = JSON.parse($(this).attr('data-values'));
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: values,
+                datasets: [{
+                    data: values,
+                    fill: false,
+                    strokeColor : "#ff6c23",
+                    pointRadius: 0,
+                    borderWidth: 1,
+                    borderColor: "#5B757B"
+                }]
+            },
+            options: {
+                animation: {
+                    duration: 0
+                },
+                scales: {
+                    xAxes: [{ display: false }],
+                    yAxes: [{ display: false }],
+                },
+                legend: {
+                    display: false
+                },
+            },
+        });
+    });
+
+
+    const generateData = (nbMonth, suffix = '') => {
+        let data = [];
+
+        let date = moment().subtract(nbMonth, 'month');
+        let nbDays = moment().diff(date, 'days');
+
+        for (let i = 0; i < nbDays; i++) {
+            date = date.clone().add(1, 'day').startOf('day');
+            data.push({
+                x: date.valueOf(),
+                y: Utils.randomInt(0,20),
+                suffix: suffix
+            });
+        }
+
+        return data;
+    };
+    const generateDataBis = (nbMonth) => {
+        let data = [];
+
+        let date = moment().subtract(nbMonth, 'month');
+        let nbDays = moment().diff(date, 'days');
+        let visible;
+        
+        let startVisible = Utils.randomInt(7,nbDays/3);
+        let endVisible = Utils.randomInt(startVisible, startVisible + (nbDays/3));
+
+        for (let i = 0; i < nbDays; i++) {
+            date = date.clone().add(1, 'day').startOf('day');
+            data.push({
+                x: date.valueOf(),
+                y: (i >= startVisible && i <= endVisible) ? 20 : NaN,
+                visibleLabel: (i >= startVisible && i <= endVisible) ? "Indisponible pour travaux" : null
+            });
+        }
+
+        return data;
+    };
+
+
+    // Panel charts
+    $('.propertyStats_section_canvas').each(function () {
+        let ctx = this.getContext("2d");
+        
+        // if (!$(this).attr('data-values')) return;
+
+        let values = generateData(3,$(this).attr('data-suffix')); //JSON.parse($(this).attr('data-values'));
+        let valuesBis = generateDataBis(3); //JSON.parse($(this).attr('data-values'));
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: [
+                    {
+                        fill: false,
+                        type: 'line',
+                        data: values,
+                        pointRadius: 0,
+                        borderWidth: 1,
+                        borderColor: "#5B757B"
+                    },
+                    {
+                        backgroundColor: 'rgba(91,117,123,0.1)',
+                        type: 'line',
+                        data: valuesBis,
+                        pointRadius: 0,
+                        borderWidth: 0,
+                        borderColor: "rgba(0,0,0,0)",
+                        lineTension: 0,
+                        steppedLine: true
+                    }
+                ]
+            },
+            options: {
+                animation: {
+                    duration: 0
+                },
+                scales: {
+					xAxes: [{
+						type: 'time',
+                        tooltipFormat:'DD/MM/YYYY',
+						distribution: 'series',
+						offset: true,
+						ticks: {
+							major: {
+								enabled: true,
+                                fontStyle: 'bold',
+                                fontSize: 11,
+							},
+							source: 'data',
+							autoSkip: true,
+							autoSkipPadding: 100,
+							maxRotation: 0,
+							sampleSize: 100
+						}
+					}],
+					yAxes: [{ display: false }]
+                },
+				tooltips: {
+					intersect: false,
+                    mode: 'index',
+                    backgroundColor: 'rgba(91,117,123,1)',
+                    xPadding: 8,
+                    yPadding: 8,
+                    displayColors: false,
+                    bodyAlign: 'center',
+                    titleAlign: 'center',
+                    titleMarginBottom: 4,
+					callbacks: {
+                        title: function (tooltipItem, myData) {
+                            let dataCell = myData.datasets[tooltipItem[0].datasetIndex].data[tooltipItem[0].index];
+                            let date = dataCell.x;
+                            return moment(date).format('DD MMMM');
+                        },
+						label: function(tooltipItem, myData) {
+                            let dataCell = myData.datasets[tooltipItem.datasetIndex].data[tooltipItem.index];
+
+                            if (dataCell && dataCell.hasOwnProperty('visibleLabel')) return;
+                            
+                            let visibleLabel = null;
+                            if (myData.datasets[1]) {
+                                visibleLabel = myData.datasets[1].data[tooltipItem.index].visibleLabel;
+                            }
+
+                            let suffix = dataCell.suffix || '';
+                            let label = tooltipItem.value + ' ' + suffix;
+
+                            if (visibleLabel) {
+                                return [label, visibleLabel]
+                            } else {
+                                return label;
+                            }
+                        }
+					}
+				},
+                legend: {
+                    display: false
+                },
+            },
+        });
+    });
+
+    if ($('.relatedProperties_carousel').length) {
+        $('.relatedProperties_carousel').each(function(){
+            let carousel = $(this);
+            let guid = Utils.guid();
+            carousel.attr('data-carousel', guid);
+            new Swiper('.relatedProperties_carousel[data-carousel="' + guid + '"] .swiper-container', {	
+                slidesPerView: 3,
+                spaceBetween: 16,
+                breakpoints: {
+                    0: { slidesPerView: 1 },
+                    480: { slidesPerView: 1, spaceBetween: 20 },
+                    // 768: { slidesPerView: 3, allowTouchMove: false, spaceBetween: 20 },
+                    1025: { slidesPerView: 2, allowTouchMove: false, spaceBetween: 32 }
+                },
+                navigation: {
+                    prevEl: '.relatedProperties_carousel[data-carousel="' + guid + '"] .customCarousel_nav--prev',
+                    nextEl: '.relatedProperties_carousel[data-carousel="' + guid + '"] .customCarousel_nav--next',
+                }
+            });
+        });
+    }
+    
+
+    // ----------------------------------------------
+    // Finances -------------------------------------
+    // ----------------------------------------------
+
+    const generateIncomeData = (nbMonth, min, max) => {
+        let data = [];
+
+        let date = moment().subtract(nbMonth, 'month');
+
+        for (let i = 0; i < nbMonth; i++) {
+            date = date.clone().add(1, 'month').startOf('day');
+            data.push({
+                x: date.valueOf(),
+                y: Utils.randomInt(min, max),
+                isFuture: false
+            });
+        }
+
+        date = moment();
+
+        for (let j = 1; j <= 6; j++) {
+            date = date.clone().add(1, 'month').startOf('day');
+            data.push({
+                x: date.valueOf(),
+                y: Utils.randomInt(min, max),
+                isFuture: true
+            });
+        }
+
+        return data;
+    };
+
+    var incomesBarsColors = {
+        beforeUpdate: function(chart) {
+            var bgPositive = [];
+            var bgNegative = [];
+            
+            for (var i = 0; i < chart.config.data.datasets[0].data.length; i++) {
+                let positive = chart.config.data.datasets[0].data[i];
+                let negative = chart.config.data.datasets[1].data[i];
+                
+                if (positive.isFuture == true) {
+                    bgPositive.push('#ECF0EE');
+                } else {
+                    bgPositive.push('#BFD8DD');
+                }
+                
+                if (negative.isFuture == true) {
+                    bgNegative.push('#CAC6C4');
+                } else {
+                    bgNegative.push('#DE5507');
+                }
+            }
+
+            chart.config.data.datasets[0].backgroundColor = bgPositive;
+            chart.config.data.datasets[1].backgroundColor = bgNegative;
+        }
+    };
+
+    // Incomes charts
+    $('.incomesChart').each(function () {
+        let ctx = this.getContext("2d");
+
+        var bgGradient = ctx.createLinearGradient(0, 0, 0, 120);
+        bgGradient.addColorStop(0, '#E7EEEC');
+        bgGradient.addColorStop(1, '#BFD8DD');
+        
+        // if (!$(this).attr('data-values')) return;
+
+        let positive = generateIncomeData(12, 10000, 30000);
+        let negative = generateIncomeData(12, -2000, -8000);
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                datasets: [
+                    {
+                        type: 'bar',
+                        data: positive,
+                        barPercentage: 1,
+                        categoryPercentage: 0.97,
+                        backgroundColor: bgGradient
+                    },
+                    {
+                        type: 'bar',
+                        data: negative,
+                        barPercentage: 1,
+                        categoryPercentage: 0.97,
+                        backgroundColor: "#DE5507"
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                scales: {
+					xAxes: [{
+                        type: 'time',
+                        tooltipFormat:'MM/YYYY',
+						distribution: 'series',
+                        offset: true,
+                        stacked: true,
+                        gridLines: {
+                            display : false,
+                            offsetGridLines: false
+                        },
+						ticks: {
+							major: {
+								enabled: true,
+                                fontStyle: 'bold',
+                                fontSize: 11,
+							},
+							source: 'data',
+							autoSkip: true,
+							autoSkipPadding: 100,
+							maxRotation: 0,
+							sampleSize: 100
+						}
+					}],
+					yAxes: [{ display: false }]
+                },
+                legend: {
+                    display: false
+                },
+                tooltips: {
+                    enabled: false,
+                    custom: function(tooltipModel) {
+                        if (tooltipModel.dataPoints) {
+                            $('.incomesChart_tooltip').css('left', tooltipModel.caretX);
+                            $('.incomesChart_tooltip').addClass('visible');
+                            $('.incomesChart_tooltip_content.visible').removeClass('visible');
+                            $('.incomesChart_tooltip_content--' + tooltipModel.dataPoints[0].index).addClass('visible');
+                        } else {
+                            $('.incomesChart_tooltip.visible').removeClass('visible');
+                        }
+                    }
+                }
+            },
+            plugins: incomesBarsColors
+        });
+    });
+
+
+    // Taxation chart
+    $('.taxationChart').each(function () {
+        let ctx = this.getContext("2d");
+
+        var bgGradient = ctx.createLinearGradient(0, 0, 0, 120);
+        bgGradient.addColorStop(0, '#E7EEEC');
+        bgGradient.addColorStop(1, '#BFD8DD');
+
+        let labels = JSON.parse($(this).attr('data-labels'));
+        let values = JSON.parse($(this).attr('data-values'));
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        type: 'bar',
+                        data: values,
+                        barPercentage: 1,
+                        categoryPercentage: 0.97,
+                        backgroundColor: bgGradient
+                    }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 0
+                },
+                scales: {
+					xAxes: [{
+                        offset: true,
+                        gridLines: {
+                            display : false,
+                        }
+					}],
+					yAxes: [{
+                        display: false,
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                },
+                legend: {
+                    display: false
+                },
+				tooltips: {
+					intersect: false,
+                    mode: 'index',
+                    backgroundColor: 'rgba(91,117,123,1)',
+                    xPadding: 8,
+                    yPadding: 8,
+                    displayColors: false,
+                    bodyAlign: 'center',
+                    titleAlign: 'center',
+                    titleMarginBottom: 8,
+					callbacks: {
+						label: function(tooltipItem, myData) {
+                            return tooltipItem.value + ' €';
+                        }
+					}
+				},
+            },
+        });
+    });
+
+
+    // Properties popin checkboxes - Financial
+    $('.folderChoice_toggle').on('click', function(e) {
+        let details = $('.folderChoiceDetails[data-folder="' + $(this).attr('data-folder') + '"]');
+        $(this).toggleClass('active');
+        details.toggleClass('visible');
+    });
+
+    $('.folderChoice_radio[type="checkbox"]').on('click', function(e){
+        let checkbox = $(this);
+
+        // If toggle parent folder checkbox
+        if (checkbox.hasClass('folderChoice_radio--parent')) {
+            let children = $('.folderChoice_radio--child[data-folder="' + checkbox.attr('data-folder') + '"]');
+            children.prop("checked", checkbox.is(":checked"));
+        }
+        
+        // If toggle child folder checkbox
+        if (checkbox.hasClass('folderChoice_radio--child')) {
+            let folderId = checkbox.attr('data-folder');
+            let allChecked = true;
+
+            $('.folderChoice_radio--child[data-folder="' + folderId + '"]').each(function(){
+                if (!$(this).is(':checked')) {
+                    allChecked = false;
+                }
+            });
+
+            $('.folderChoice_radio--parent[data-folder="' + folderId + '"]').prop("checked", allChecked);
+        }
+    });
+
+
+
+
+    // ----------------------------------------------
+    // Profile offers -------------------------------
+    // ----------------------------------------------
+    $('.userOffres_carouselOpener').on('click', (e) => {
+        $('.userOffres_carouselWrap').addClass('userOffres_carouselWrap--visible');
+    });
+
+    $('.userOffres_carouselBackground, .userOffres_carousel_close').on('click', (e) => {
+        $('.userOffres_carouselWrap').removeClass('userOffres_carouselWrap--visible');
+    });
+
+    if ($('.userOffres_carousel').length) {
+        $('.userOffres_carousel').each(function(){
+            let carousel = $(this);
+            let guid = Utils.guid();
+            carousel.attr('data-carousel', guid);
+            new Swiper('.userOffres_carousel[data-carousel="' + guid + '"] .swiper-container', {	
+                slidesPerView: 1,
+                spaceBetween: 20,
+                navigation: {
+                    prevEl: '.userOffres_carousel[data-carousel="' + guid + '"] .userOffres_carousel_nav--prev',
+                    nextEl: '.userOffres_carousel[data-carousel="' + guid + '"] .userOffres_carousel_nav--next',
+                },
+                breakpoints: {
+                    700: {
+                        spaceBetween: 100
+                    }
+                }
+            });
+        });
+    }
+
+    $('.uploader').each(function() {
+        let uploaderParent = $(this);
+        let input = uploaderParent.find('input[type="file"]');
+        let inputElt = input[0];
+
+        input.on('change', function() {
+            if (inputElt.files && inputElt.files[0]) {
+                uploaderParent.addClass('uploader--loading');
+
+                // Do the action here
+                console.log("UPLOADED FILE", inputElt.files);
+                setTimeout(() => {
+                    uploaderParent.removeClass('uploader--loading');
+                }, 3000);
+
+            }
+        });
+    });
+
+
+    // TMP 
+    $('.offresStates button').on('click', function() {
+        let state = $(this).attr('data-state');
+        $('div[data-state]').hide();
+        $('div[data-state="' + state + '"]').show();
+    });
+
+
+
+    // ----------------------------------------------
+    // Observe scroll -------------------------------
+    // ----------------------------------------------
+    window.addEventListener('scroll', Utils.debounce(() => {
+        toggleTopbar();
+    }), { passive: true });
+})();
