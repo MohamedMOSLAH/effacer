@@ -1,6 +1,5 @@
-
 // import $ from "jquery";  
-import { gsap, TweenMax, TimelineMax } from "gsap";
+import { gsap, TweenMax, TimelineMax, ScrollToPlugin } from "gsap";
 import Swiper from 'swiper/bundle';
 import lottie from "lottie-web";
 import moment from 'moment';
@@ -81,6 +80,64 @@ const loadImages = () => {
     // Preload images -------------------------------
     // ----------------------------------------------
     loadImages();
+
+
+    // ----------------------------------------------
+    // DASHBOARD ------------------------------------
+    // ----------------------------------------------
+    if ($('.dashboardHeader_recap_list').length) {
+        $('.dashboardHeader_recap_list').each(function(){
+            let carousel = $(this);
+            let guid = Utils.guid();
+            carousel.attr('data-carousel', guid);
+            new Swiper('.dashboardHeader_recap_list[data-carousel="' + guid + '"] .swiper-container', {	
+                slidesPerView: 3,
+                spaceBetween: 32,
+                navigation: {
+                    prevEl: '.dashboardHeader_recap_list[data-carousel="' + guid + '"] .customCarousel_nav--prev',
+                    nextEl: '.dashboardHeader_recap_list[data-carousel="' + guid + '"] .customCarousel_nav--next',
+                },
+                breakpoints: {
+                    0: { slidesPerView: 1 },
+                    768: { slidesPerView: 2 },
+                    990: { slidesPerView: 3 }
+                }
+            });
+        });
+
+        let updateSectionActions = () => {
+            $('.dashboardSection').each((index, s) => {
+                let section = $(s);
+
+                section.attr('data-position', index);
+                section.find('.dashboardSection_title_actions button[disabled]').removeAttr('disabled');
+
+                if (index == 0) {
+                    section.find('.dashboardSection_title_actions button').last().attr('disabled', 'disabled');
+                }
+
+                if (index == $('.dashboardSection').length - 1) {
+                    section.find('.dashboardSection_title_actions button').first().attr('disabled', 'disabled');
+                }
+
+                console.log("NEW POSITION", s, index);
+            });
+        };
+
+        $('[data-updatePosition]').on('click', function() {
+            let section = $(this).closest('.dashboardSection');
+            let modifier = parseInt($(this).attr('data-updatePosition'));
+            
+            if (modifier > 0) {
+                section.insertAfter(section.next('.dashboardSection'));
+            } else {
+                section.insertBefore(section.prev('.dashboardSection'));
+            }
+
+            updateSectionActions();
+            console.log("---------------------------");
+        });
+    }
 
 
     // ----------------------------------------------
@@ -331,7 +388,7 @@ const loadImages = () => {
     };
 
     const initPanels = () => {
-        $('[data-panel!=panel-rental-rent]').on('click', function (e) {
+        $('[data-panel]').on('click', function (e) {
             e.preventDefault();
             const panelElt = $($(this).attr('data-panel'));
             if (panelElt.length > 0)  {
@@ -346,111 +403,6 @@ const loadImages = () => {
     };
 
     initPanels();
-	
-	
-	
-    const initPanelsRents = function initPanelsRents() {
-    $('body').on('click', '#rent [data-panel]', function (e) {
-      const _this = this;
-
-      e.preventDefault();
-      const Params = new URLSearchParams();
-      const Url = new URL(window.location.href); // On lance la requête ajax
-      // console.log(e.target.getAttribute('href'))
-
-      $("#loader").addClass("is-active");
-      fetch(e.target.getAttribute('href') + "&ajax=1", {
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          'Content-Type': 'application/json'
-        }
-      }).then(function (response) {
-        return response.json();
-      }).then(function (data) {
-        // On va chercher la zone de contenu
-        const content = document.querySelector(".panel");
-        const list_popins = document.querySelector(".list_popins");
-        content.innerHTML = data.content;
-        list_popins.innerHTML = data.list_popins;
-      }).then(function (cc) {
-        if ($('.rentalCarousel').length) {
-          $('.rentalCarousel').each(function () {
-            const carousel = $(this);
-
-            const guid = Utils.guid();
-
-            carousel.attr('data-carousel', guid);
-            new Swiper('.rentalCarousel[data-carousel="' + guid + '"] .swiper-container', {
-              slidesPerView: 3,
-              spaceBetween: 16,
-              breakpoints: {
-                0: {
-                  slidesPerView: 1
-                },
-                480: {
-                  slidesPerView: 2
-                },
-                // 768: { slidesPerView: 3, allowTouchMove: false, spaceBetween: 20 },
-                1025: {
-                  slidesPerView: 3,
-                  allowTouchMove: false,
-                  spaceBetween: 20
-                }
-              },
-              navigation: {
-                prevEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--prev',
-                nextEl: '.rentalCarousel[data-carousel="' + guid + '"] .customCarousel_nav--next'
-              }
-            });
-            carousel.find('.rentalItem').on('click', function () {
-              carousel.find('.rentalItem.active').removeClass('active');
-              $(this).addClass('active');
-              const rentalId = $(this).attr('data-rental');
-              const panel = $(this.closest('.panel'));
-              panel.find('.rental.visible').removeClass('visible');
-              panel.find('.rental[data-rental="' + rentalId + '"]').addClass('visible');
-              panel.find('.panel_scroller').get(0).scrollTop = 0;
-            });
-          });
-        } // ----------------------------------------------
-        // DataTables -----------------------------------
-        // ----------------------------------------------
-
-
-        $('table[data-table]').DataTable({
-          "searching": false,
-          "info": false,
-          "lengthChange": false,
-          "paging": false
-        });
-        $('.tabWrap .tabButton[data-tab]').on('click', function (e) {
-          e.preventDefault();
-          const parent = $(this).closest('.tabWrap');
-          const tabValue = $(this).attr('data-tab');
-          const tab = parent.find('.tabSection[data-tab="' + tabValue + '"]');
-          parent.find('.tabSection').removeClass('visible');
-          parent.find('.tabButton').removeClass('active');
-          tab.addClass('visible');
-          $(this).addClass('active');
-        });
-      }).then(function (aa) {
-        const panelElt = $($(_this).attr('data-panel'));
-
-        if (panelElt.length > 0) {
-          $("#loader").removeClass("is-active");
-          openPanel(panelElt);
-        }
-      })["catch"](function (e) {
-        return alert(e);
-      });
-    });
-    $('body').on('click', '.panel_close, .panel_background', function (e) {
-      e.preventDefault();
-      closePanel($(this).closest('.panel'));
-    });
-  };
-
-    initPanelsRents();
 
 
     // ----------------------------------------------
@@ -599,6 +551,17 @@ const loadImages = () => {
             loop: true,
             autoplay: true,
             path: 'assets/json/lodgis.json' // the path to the animation json
+          });
+    });
+
+    $('.lottieForm').each(function(){
+        const elt = $(this);
+        lottie.loadAnimation({
+            container: elt.get(0), // the dom element that will contain the animation
+            renderer: 'svg',
+            loop: true,
+            autoplay: true,
+            path: 'assets/json/formComplete.json' // the path to the animation json
           });
     });
 
@@ -1252,6 +1215,212 @@ const loadImages = () => {
         let state = $(this).attr('data-state');
         $('div[data-state]').hide();
         $('div[data-state="' + state + '"]').show();
+    });
+
+
+
+    // ----------------------------------------------
+    // Formulaire de création -----------------------
+    // ----------------------------------------------
+    let scaleStep = 0.05;
+    let translateStep = (WU.isXS() || WU.isSM()) ? -10 : -20;
+    let currentStep = 1;
+    let currentStepElt = $('.formSection[data-section="' + currentStep + '"]');
+    let nbSteps = $('.formSection').length;
+
+    let initStyle = () => {
+        $('.formSection').each(function(index) {
+            let elt = $(this);
+            gsap.set(elt, {
+                scale: 1 - (index * scaleStep),
+                zIndex: nbSteps - index
+            });
+        });
+
+        gsap.to('.sidebar', {
+            opacity: 1,
+            duration: 0.6
+        });
+
+        $('.formSection').each(function(index) {
+            let elt = $(this);
+            gsap.to(elt, {
+                y: index * translateStep,
+                opacity: 1,
+                delay: (index+1) * 0.1,
+                duration: 1
+            });
+        });
+
+        gsap.to('.formActions', {
+            y: 0,
+            opacity: 1,
+            delay: 1,
+            duration: 0.6
+        });
+
+        gsap.to('.formSection_logo', {
+            opacity: 0.05,
+            delay: 1,
+            duration: 0.6
+        });
+    };
+
+    let updateNav = () => {
+        $('.sidebar_progress_item--validated').removeClass('sidebar_progress_item--validated');
+        $('.sidebar_progress_item--active').removeClass('sidebar_progress_item--active');
+
+        $('.sidebar_progress_item[data-section="' + currentStep + '"]').addClass('sidebar_progress_item--active').prevAll('.sidebar_progress_item').each(function(index) {
+            let elt = $(this);
+            elt.addClass('sidebar_progress_item--validated');
+
+        });
+    };
+
+    let updateActions = () => {
+        $('.formAction--active').removeClass('formAction--active');
+        $('.formAction[data-section="' + currentStep + '"]').addClass('formAction--active');
+    };
+
+    let updateHelps = () => {
+        $('.formHelp_step--active').removeClass('formHelp_step--active');
+        $('.formHelp_step[data-section="' + currentStep + '"]').addClass('formHelp_step--active');
+    };
+
+    let prevSection = () => {
+        if (currentStep == 1) return;
+
+        let prev = currentStepElt.prev('.formSection');
+
+        $("html, body").stop().animate({scrollTop:0});
+        gsap.to(prev, { y: 0, scale: 1, autoAlpha: 1, duration: 1 });
+
+        prev.nextAll('.formSection').each(function(index) {
+            let elt = $(this);
+            gsap.to(elt, { scale: 1 - ((index+1) * scaleStep), y: ((index+1) * translateStep), duration: 1 });
+        });
+
+        currentStep = parseInt(prev.attr('data-section'));
+        currentStepElt = prev;
+
+        $('.formSection--active').removeClass('formSection--active');
+        currentStepElt.addClass('formSection--active');
+
+        updateNav();
+        updateActions();
+        updateHelps();
+    };
+    
+    let nextSection = () => {
+        if (currentStep == nbSteps) return;
+
+        let next = currentStepElt.next('.formSection');
+        
+        $("html, body").stop().animate({scrollTop:0});
+        gsap.to(currentStepElt, { y: "100vh", autoAlpha: 0, duration: 1 });
+        
+        currentStepElt.nextAll('.formSection').each(function(index) {
+            let elt = $(this);
+            gsap.to(elt, { scale: 1 - (index * scaleStep), y: (index * translateStep), duration: 1 });
+        });
+
+        currentStep = parseInt(next.attr('data-section'));
+        currentStepElt = next;
+        
+        $('.formSection--active').removeClass('formSection--active');
+        currentStepElt.addClass('formSection--active');
+
+        updateNav();
+        updateActions();
+        updateHelps();
+    };
+
+    let showEnd = () => {
+        $("html, body").stop().animate({scrollTop:0});
+        
+        gsap.to('.formSteps', { autoAlpha: 0 });
+        gsap.to('.formEnd', { autoAlpha: 1 });
+
+        gsap.to(
+            ['.formEnd_animation', '.formEnd h2', '.formEnd h3', '.formEnd_steps', '.formEnd_cta'],
+            {
+                opacity: 1,
+                y: 0,
+                delay: 0.5,
+                stagger: 0.15
+            }
+        );
+    };
+
+
+    if ($('body').hasClass('p-creation')) {
+        initStyle();
+
+        $('.prevStep').on('click', () => {
+            prevSection();
+        });
+    
+        $('.nextStep').on('click', () => {
+            if (currentStep == nbSteps) {
+                showEnd();
+            } else {
+                nextSection();
+            }
+        });
+
+
+        // ----------------------------------------------
+        // HELP mobile button ---------------------------
+        // ----------------------------------------------
+        $('.formHelpMobile').on('click', () => {
+            $('.formHelpMobile_mask').toggleClass('formHelpMobile_mask--visible');
+            $('.formHelpContainer').toggleClass('formHelpContainer--visible');
+        });
+
+        $('.formHelpMobile_mask').on('click', () => {
+            $('.formHelpMobile_mask').removeClass('formHelpMobile_mask--visible');
+            $('.formHelpContainer').removeClass('formHelpContainer--visible');
+        });
+    }
+
+    $('.favPicture').on('click', function(e){
+        e.preventDefault();
+        $('.roomPicture--fav').removeClass('roomPicture--fav');
+        $(this).closest('.roomPicture').addClass('roomPicture--fav');
+    });
+
+    let editorOriginalValue = undefined;
+    $('.propertyEditor_button--edit').on('click', function(e) {
+        let editor = $(this).closest('.propertyEditor');
+        editor.addClass('propertyEditor--editing');
+        editorOriginalValue = editor.find('.propertyEditor_editor').html();
+        editor.find('.propertyEditor_editor').attr('contenteditable', 'true');
+    })
+
+
+    $('.propertyEditor_button--cancel').on('click', function(e) {
+        let editor = $(this).closest('.propertyEditor');
+        editor.removeClass('propertyEditor--editing');
+        editor.find('.propertyEditor_editor').html(editorOriginalValue);
+        editor.find('.propertyEditor_editor').removeAttr('contenteditable');
+        editorOriginalValue = undefined;
+    });
+
+    $('.propertyEditor_button--save').on('click', function(e) {
+        let editor = $(this).closest('.propertyEditor');
+        editor.removeClass('propertyEditor--editing');
+        editor.find('.propertyEditor_editor').removeAttr('contenteditable');
+        editorOriginalValue = undefined;
+    });
+
+    $('button[data-gotostep]').on('click', function(e){
+        e.preventDefault();
+        let stepNum = $(this).attr('data-gotostep');
+        $('.propertyRooms_step--active').removeClass('propertyRooms_step--active');
+        $('.propertyRooms_step[data-step="' + stepNum + '"]').addClass('propertyRooms_step--active');
+
+        $('.panel_breadcrumbs li.active').removeClass('active');
+        $('.panel_breadcrumbs li[data-step="' + stepNum + '"]').addClass('active');
     });
 
 
